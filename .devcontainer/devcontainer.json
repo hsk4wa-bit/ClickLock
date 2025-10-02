@@ -1,0 +1,9 @@
+{
+  "name": "Android build container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {},
+  "remoteUser": "vscode",
+  "postCreateCommand": "chmod +x ./gradlew || true"
+}
