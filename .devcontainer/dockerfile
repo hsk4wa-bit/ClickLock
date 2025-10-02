@@ -1,0 +1,34 @@
+# Lightweight base with OpenJDK
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ANDROID_SDK_ROOT=/sdk
+ENV PATH=$PATH:/sdk/cmdline-tools/latest/bin:/sdk/platform-tools:/sdk/emulator:/sdk/cmdline-tools/tools/bin
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget unzip curl git ca-certificates openjdk-17-jdk-headless jq sudo \
+  && rm -rf /var/lib/apt/lists/*
+
+# create user
+RUN useradd -m vscode && echo "vscode ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vscode
+
+# Android command line tools (latest; we use cmdline-tools)
+RUN mkdir -p /sdk && \
+    cd /tmp && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip && \
+    unzip cmdline.zip -d /sdk/cmdline-tools && \
+    mkdir -p /sdk/cmdline-tools/latest && mv /sdk/cmdline-tools/cmdline-tools/* /sdk/cmdline-tools/latest/ && \
+    rm cmdline.zip
+
+# accept licenses and install platforms/build-tools/ndk as needed (example: platform 33, build-tools 33.0.2)
+RUN yes | /sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/sdk --licenses
+RUN /sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+# Optional: install Gradle if your project doesn't include gradle wrapper (but prefer using ./gradlew)
+RUN apt-get update && apt-get install -y gradle && rm -rf /var/lib/apt/lists/*
+
+# fix permissions
+RUN chown -R vscode:vscode /sdk
+
+USER vscode
+WORKDIR /workspaces/${GITHUB_REPOSITORY##*/} # Codespaces sets this variable correctly in many cases
